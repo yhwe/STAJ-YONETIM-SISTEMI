@@ -12,6 +12,10 @@ struct ogrenci
 	int sinif;
 	int no;
 	int id;
+	int stajyillari[10];      //1. staj yili 2.staj yili 2020 2021
+	int toplamhaftayil[10];
+	int donanimhafta[10];     //1.staj yilindaki toplam donanim haftasi 2.staj yilindaki toplam donanim haftasi
+	int yazilimhafta[10];
 	int stajdurumu;
 }ogr[100];
 
@@ -27,11 +31,14 @@ struct staj
 {
 	char baslangic[20];
 	char bitis[20];
-	int  haftasayisi;
 	char stajturu[50];
 	int ogrid;                  // ogrenci ve firma bilgilerinde duzenlendiginde staj bilgilerinin eslenmesi id ile saglanir
 	int firid;                  //
+	int stajyil[10];            // girilen tarih de 1den fazla yil var ise 2010da baslayip 2012 de bitiyorsa yillar icin dizi kullandik
+	int  haftasayisi[10];
 }stj[100];
+
+
     int ogrencilistele();
 	int ogrencianafonk();
 	int ogrencibilgial();
@@ -53,11 +60,13 @@ struct staj
 	int firmalistele();
 	int stajanafonk();
 	int stajekle();
-	void filestajekle (char bastarih[20], char bitistarih[20],int stajhafta,char stajturu[50], int ogrno, int firmano );
+	void filestajekle (char bastarih[20], char bitistarih[20], char stajturu[50], int ogrno, int firmano );
     void yarimstaj();
     void bitmisstaj();
     int stajdurumu (int durum);
     void filestajoku();
+    void stajyilhaftahesapla(int stajno);
+    void  ogryilhaftahesapla(int turu,int stajsirano,int ogrsirano);
 
 int main()
 {
@@ -561,6 +570,9 @@ return 0;
 	}while((ch!='0')&&(sonlandir!=0));
 	}
 //************************************************staj ekleme***************************************
+
+
+
 	int stajekle()
 	{
 		struct firma *firmastr=&fir[0];
@@ -569,6 +581,7 @@ return 0;
     	int ogrid,firid;
         char turu[50];
         int kontrol=0,ogrno,f,firno;
+
 		printf("Ogrenci no giriniz: \n");
 		scanf("%d",&ogrno);
 	   for(f=0;f<=ogrsayisi;f++)
@@ -608,6 +621,126 @@ return 0;
 	scanf("%s", string1);
 	printf(" staj bitis tarihi giriniz : ");
 	scanf("%s", string2);
+  	filestajekle (string1, string2, turu, ogrid, firid); //staj.txt olusturma ve bilgileri ekleme fonkiyonu
+	printf("Staj menusune donmek icin 1'e basiniz. Ana menuye donmek icin 0'a basiniz: \n");
+	scanf("%d" ,&don);
+	return don;
+	}
+
+//************************************************************************************************************************
+    void filestajekle (char bastarih[20], char bitistarih[20],char stajturu[50], int ogrno, int firmano )
+    {
+       FILE *stajekle = fopen("staj.txt", "a");
+       fprintf(stajekle,"%s %s %s %d %d\n", bastarih, bitistarih, stajturu, ogrno, firmano);
+       fclose(stajekle);
+       filestajoku ();                            //firma struct degerlerini ve firmasayisi guncelleme
+    }
+//**************************************************struct i guncel tutma ve başlangicta txtyi struct aktarma******************************
+    void filestajoku (){
+
+    	struct staj *stajptr=&stj[0];
+        FILE *filestaj;
+		if ((filestaj = fopen("staj.txt", "r")) == NULL)   //dosya yok ise yeni dosya yarat
+		{
+		filestaj = fopen("staj.txt", "w");
+		}else{
+		filestaj = fopen("staj.txt", "r");
+        int i;
+        for (i=0;i>-1;i++)
+            {
+              if( feof(filestaj) )
+              {
+              break ;
+              }
+			 stajsayisi=i+1;                                     // staj sayisi
+             fscanf(filestaj,"%s %s %s %d %d\n", &stajptr[i].baslangic, &stajptr[i].bitis, &stajptr[i].stajturu, &stajptr[i].ogrid, &stajptr[i].firid);
+        }
+        }
+        fclose(filestaj);
+    };
+
+
+
+
+//************************************************staj listaleme********************************************************
+        int stajdurumu (int durum){
+        int i,k,don,z;
+    	struct staj *stajptr=&stj[0];
+    	struct ogrenci *ogrptr=&ogr[0];
+    	struct firma *firmaptr=&fir[0];
+    	int donanimhafta;
+    	int yazilimhafta;
+    	int toplamhafta;
+
+    	char turdon[50]="donanim";
+    	char turyaz[50]="yazilim";
+	for (k=0;k<ogrsayisi;k++){
+			donanimhafta=0;
+			yazilimhafta=0;
+			toplamhafta=0;
+
+    	for (i=0;i<stajsayisi;i++){
+
+    		stajyilhaftahesapla(i);
+    	if (stajptr[i].ogrid==ogrptr[k].id){
+
+    		if(stj[i].stajturu[0]==turdon[0]){
+    			ogryilhaftahesapla(1,i,k);   // 1=donanim i=hangi staj k= hangi ogrenci
+			}else if(stj[i].stajturu[0]==turyaz[0]){
+				ogryilhaftahesapla(2,i,k);   // 2= yazilim
+			}
+		}
+        }
+
+    for (z=0;z<10;z++){
+    	if (ogrptr[k].toplamhaftayil[z]>=4)
+    	{
+    		if (ogrptr[k].toplamhaftayil[z]>8)             //8 den fazla staj var ise 8 al
+    		{
+    			ogrptr[k].toplamhaftayil[z]=8;
+			}
+			yazilimhafta += ogrptr[k].yazilimhafta[z];
+			donanimhafta += ogrptr[k].donanimhafta[z];
+			toplamhafta += ogrptr[k].toplamhaftayil[z];
+		}
+	}
+	if ((yazilimhafta >= 4) && (donanimhafta >= 2) && (toplamhafta >= 12)){
+		ogrptr[k].stajdurumu=1;
+	} else {
+     ogrptr[k].stajdurumu=2;
+	 }
+
+    }
+      if (durum==1){
+      	bitmisstaj();
+	  } else if (durum==2)
+	  {
+	  	yarimstaj();
+	  }
+	printf("Staj menusune donmek icin 1'e basiniz. Ana menuye donmek icin 0'a basiniz: \n");
+	scanf("%d" ,&don);
+	return don;
+    };
+
+
+
+
+
+
+
+
+
+
+    //************************************************************************************
+
+
+ void stajyilhaftahesapla(int stajno){
+    int stajyili[10],stajhaftasi[10];
+    int stajyilsayi,yilsayac,aralikay,sonyilhafta,ilkyilhafta;
+    struct staj *stajptr=&stj[0];
+    char string1[256] , string2[256];
+    strcpy(string1,stajptr[stajno].baslangic);
+    strcpy(string2,stajptr[stajno].bitis);
 	int digit, k = 0, j = 1, m = 0, gun1 = 0, ay1 = 0, yil1 = 0 , gun2 = 0, ay2 = 0, yil2 = 0,i;
 	 for( i = strlen(string1)-1 ; i>=0 ; i--)
 	 {
@@ -670,99 +803,111 @@ return 0;
 			}
 	}
 //****************************************staj hafta hesaplama***************************************
-	int gun3 = 0, ay3 = 0, hafta = 0;
-	if(ay1 == ay2){
+
+	int gun3 = 0, ay3 = 0, hafta = 0,t;
+	if((ay1 == ay2)&&(yil1 == yil2)){
 		gun3 = gun2 - gun1 ;
 		gun3 = gun3 - gun3%7;
 		hafta = gun3/7;
-	}
-	if(yil1 == yil2){
-	hafta = hafta + ( ay2 - ay1 - 1 ) * 4;
-	hafta = hafta + ( ( 30 - gun1 + gun2 )-( 30 - gun1 + gun2 ) % 7 ) / 7 ;
-	}
-	if(yil1 > yil2){
-		hafta = hafta + ay2 * 4 + ( (gun2 - ( gun2 % 7 ) ) / 7);
-		hafta = hafta + ((12 - ay1 ) * 4) - ( ( gun1 - ( gun1 % 7 ) ) / 7 );
-	}
-	printf("staj hafta sayiniz : %d",hafta);
-  	filestajekle (string1, string2, hafta, turu, ogrid, firid); //firma.txt olusturma ve bilgileri ekleme fonkiyonu
-	printf("Staj menusune donmek icin 1'e basiniz. Ana menuye donmek icin 0'a basiniz: \n");
-	scanf("%d" ,&don);
-	return don;
-	}
-    void filestajekle (char bastarih[20], char bitistarih[20],int stajhafta,char stajturu[50], int ogrno, int firmano )
-    {
-       FILE *stajekle = fopen("staj.txt", "a");
-       fprintf(stajekle,"%s %s %d %s %d %d\n", bastarih, bitistarih, stajhafta, stajturu, ogrno, firmano);
-       fclose(stajekle);
-       filestajoku ();                            //firma struct degerlerini ve firmasayisi guncelleme
-    }
-//**************************************************struct i guncel tutma ve başlangicta txtyi struct aktarma******************************
-    void filestajoku (){
-
-    	struct staj *stajptr=&stj[0];
-        FILE *filestaj;
-		if ((filestaj = fopen("staj.txt", "r")) == NULL)   //dosya yok ise yeni dosya yarat
-		{
-		filestaj = fopen("staj.txt", "w");
-		}else{
-		filestaj = fopen("staj.txt", "r");
-        int i;
-        for (i=0;i>-1;i++)
-            {
-              if( feof(filestaj) )
-              {
-              break ;
-              }
-			 stajsayisi=i+1;                                     // staj sayisi
-             fscanf(filestaj,"%s %s %d %s %d %d\n", &stajptr[i].baslangic, &stajptr[i].bitis, &stajptr[i].haftasayisi, &stajptr[i].stajturu, &stajptr[i].ogrid, &stajptr[i].firid);
-        }
-        }
-        fclose(filestaj);
-    };
-//************************************************staj listaleme********************************************************
-        int stajdurumu (int durum){
-        int i,k,don;
-    	struct staj *stajptr=&stj[0];
-    	struct ogrenci *ogrptr=&ogr[0];
-    	struct firma *firmaptr=&fir[0];
-    	int donanimhafta;
-    	int yazilimhafta;
-    	int toplamhafta;
-    	char tur[50]="donanim";
-    	char turyaz[50]="yazilim";
-	for (k=0;k<ogrsayisi;k++){
-			donanimhafta=0;
-			yazilimhafta=0;
-			toplamhafta=0;
-    	for (i=0;i<stajsayisi;i++){
-    		char adi[50];
-    		strcpy(adi,stajptr[i].stajturu);
-    	if (stajptr[i].ogrid==ogrptr[k].id){
-    		if(*adi==*tur){
-    		donanimhafta+=&stajptr[i].haftasayisi;
-			}else if(*adi==*turyaz){
-    		yazilimhafta+=&stajptr[i].haftasayisi;
-			}
+		stajptr[stajno].stajyil[0]=yil1;
+		stajptr[stajno].haftasayisi[0]=hafta;
+	} else if((yil1 == yil2)&&(ay1<ay2)){
+		aralikay=ay2-ay1;
+		if(aralikay>1){         //aylar arasi 1 aydan fazla ise ay basina 2 gun eksik olusur yillik en fazla 8 hafta staj icin 1 kere 2gun eklemek yeterli
+			gun2=gun2+2;
 		}
-        }
-     toplamhafta=donanimhafta+yazilimhafta;
-     if((toplamhafta>=12)&&(donanimhafta>=2)&&(yazilimhafta>=4)){
-     ogrptr[k].stajdurumu=1;
-     }else{
-     ogrptr[k].stajdurumu=2;
-	 }
-    }
-      if (durum==1){
-      	bitmisstaj();
-	  } else if (durum==2)
-	  {
-	  	yarimstaj();
+	hafta = ( ay2 - ay1 - 1 ) * 4;
+	hafta = hafta + ( ( ( 30 - gun1 + gun2 )- (( 30 - gun1 + gun2 )%7)  ) / 7) ;
+    	stajptr[stajno].stajyil[0]=yil1;
+    	stajptr[stajno].haftasayisi[0]=hafta;
+	 } else if(yil1<yil2){
+		   if (ay2>1){
+		   gun2=gun2+2;       //aylar arasi 1 aydan fazla ise ay basina 2 gun eksik olusur
+		   }
+		sonyilhafta = ((ay2-1) * 4) + ( (gun2 - ( gun2 % 7 ) ) / 7);
+           if (ay1<12){
+		   gun1=gun1-2;       //aylar arasi 1 aydan fazla ise ay basina 2 gun eksik olusur
+		   }
+		ilkyilhafta = ((12 - ay1 ) * 4) - ( (30 - gun1 - ((30 - gun1) % 7 ) ) / 7 );
+		stajyilsayi=yil2-yil1;
+		yilsayac=yil1-1;
+
+		for(t=0;t<stajyilsayi;t++)
+		{
+
+			if (t==9){
+				break;
+			}
+			stajhaftasi[0]=ilkyilhafta;
+			yilsayac+1;
+			stajyili[t]=yilsayac;
+			stajhaftasi[t]=8;  //1 yilda max hafta sayisi
+			stajhaftasi[t+1]=sonyilhafta;
+		}
+		for(t=0;t<stajyilsayi+1;t++)
+		{
+			if (t==10){
+				break;
+			}
+			stajptr[stajno].stajyil[t]=stajyili[t];
+			stajptr[stajno].haftasayisi[t]=stajhaftasi[t];
+		}
 	  }
-	printf("Staj menusune donmek icin 1'e basiniz. Ana menuye donmek icin 0'a basiniz: \n");
-	scanf("%d" ,&don);
-	return don;
-    };
+
+
+	}
+
+
+
+
+
+
+
+//************************************************************
+  void  ogryilhaftahesapla(int turu,int stajsirano,int ogrsirano){        //turu 1 => donanim, turu 2 => yazilim
+  struct staj *stajptr=&stj[0];
+  struct ogrenci *ogrptr=&ogr[0];
+  int i,z,kontrol,toplam;
+    for(i=0;i<10;i++){
+    	kontrol=0;
+    	for(z=0;z<10;z++){
+    		if (ogrptr[ogrsirano].stajyillari[z]==stajptr[stajsirano].stajyil[i]){
+    			if (turu==1){
+    				ogrptr[ogrsirano].donanimhafta[z]+=stajptr[stajsirano].stajyil[i];
+				} else if(turu==2){
+					ogrptr[ogrsirano].yazilimhafta[z]+=stajptr[stajsirano].stajyil[i];
+				}
+    			kontrol=1;
+				ogrptr[ogrsirano].toplamhaftayil[z]+=stajptr[stajsirano].stajyil[i];              // OGR struct indaki yillarda esit yil yoksa eklemek icin 1 yilda en az 4 hafta en fazla 8 hafta kosulunu saglamak icin
+			}                                                                                    // ogrencinin diger stajlarinda kac hafta yaptigini bularak 1 yilda minimum 4 olup olmadigina bakacagiz
+		}
+		if (kontrol == 0){
+			for(z=0;z<10;z++){
+    			if (ogrptr[ogrsirano].stajyillari[z] == NULL){
+    				ogrptr[ogrsirano].stajyillari[z]=stajptr[stajsirano].stajyil[i];
+    				if (turu==1){
+    				ogrptr[ogrsirano].donanimhafta[z]=stajptr[stajsirano].stajyil[i];
+					} else if(turu==2){
+					ogrptr[ogrsirano].yazilimhafta[z]=stajptr[stajsirano].stajyil[i];
+					}
+					ogrptr[ogrsirano].toplamhaftayil[z]=stajptr[stajsirano].stajyil[i];
+    				break;
+				}
+    		}
+		}
+	}
+
+
+
+
+  }
+
+
+
+
+
+
+//************************************************************
     void bitmisstaj(){
      struct ogrenci *optr=&ogr[0];
      int i,don;
@@ -775,6 +920,7 @@ return 0;
             }
         }
     };
+//*************************************************************
 	void yarimstaj(){
 	struct ogrenci *optr=&ogr[0];
      int i,don;
